@@ -128,6 +128,8 @@ def install(lock_path, root, github=False):
     raw = lock_path.read_bytes()
     lock = json.loads(raw)
     target = host()
+    if target not in lock["blaze"] or target not in lock["mbx"]:
+        raise RuntimeError("A qualified prebuilt is not published for " + target)
     identity = hashlib.sha256(raw + target.encode()).hexdigest()
     root.mkdir(parents=True, exist_ok=True)
     with (root / "setup.lock").open("w") as guard:

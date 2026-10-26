@@ -1,0 +1,27 @@
+{
+  "toolchain": "nightly-2026-10-25",
+  "rustc_version": "rustc 1.101.0-nightly (12433c307 2026-10-24)",
+  "mbx_version": "1.28.0",
+  "source_revision": "598936fc683219c70d1a97635ad1676d8f872b54",
+  "blaze": {
+    "aarch64-unknown-linux-gnu": {
+      "url": "https://github.com/jdalton/blaze/releases/download/fleet-nightly-2026-10-25-598936fc/blaze-v0.1.0-aarch64-unknown-linux-gnu.tar.gz",
+      "sha256": "afad6fca49b9dd8dd9a0afd6b3f3ce078da83ebc4ac2d7809004debc83ffaf20"
+    },
+    "x86_64-unknown-linux-gnu": {
+      "url": "https://github.com/jdalton/blaze/releases/download/fleet-nightly-2026-10-25-598936fc/blaze-v0.1.0-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "f4c1cd7a6dc736c5074d9fa828904d4c61ccf20934ef024a088cc8a76328709a"
+    }
+  },
+  "mbx": {
+    "aarch64-unknown-linux-gnu": {
+      "url": "https://github.com/jdx/mr-boxington/releases/download/v1.28.0/mbx-aarch64-unknown-linux-gnu.tar.gz",
+      "sha256": "9056d34520991f80c9f708d36008fcc732e500d735591a8649029d476cb566bd"
+    },
+    "x86_64-unknown-linux-gnu": {
+      "url": "https://github.com/jdx/mr-boxington/releases/download/v1.28.0/mbx-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "50ce9360221d9274a73d70c9d2d5285dc2d8353a101de0845e3da5bb0083bcfb"
+    }
+  },
+  "std_from": "https://github.com/jdalton/blaze/releases/download/fleet-nightly-2026-10-25-598936fc"
+}
