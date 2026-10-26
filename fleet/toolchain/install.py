@@ -72,9 +72,14 @@ def compiler(lock):
     )
     rustc = Path(probe.stdout.strip()) if probe.returncode == 0 else None
     source = rustc.parent.parent / "lib/rustlib/src/rust/library" if rustc else None
-    if rustc is None or not source.is_dir():
+    components = subprocess.run(
+        ["rustup", "component", "list", "--toolchain", toolchain, "--installed"],
+        capture_output=True, text=True,
+    )
+    has_lints = all(name in components.stdout for name in ("clippy-", "rustfmt-"))
+    if rustc is None or not source.is_dir() or not has_lints:
         run("rustup", "toolchain", "install", toolchain, "--profile", "minimal",
-            "--component", "rust-src")
+            "--component", "rust-src", "--component", "clippy", "--component", "rustfmt")
         rustc = Path(run("rustup", "which", "--toolchain", toolchain, "rustc",
                          capture_output=True).stdout.strip())
     version = run(str(rustc), "--version", capture_output=True).stdout.strip()
@@ -102,6 +107,7 @@ def activate(root, lock, rustc, github):
         "RUSTC": str(rustc),
         "MBX_BLAZE": "1",
         "MBX_DISABLE": "0",
+        "MBX_BLAZE_ROOT": str(root),
     }
     paths = [str(shim), str(root / "bin")]
     lines = ['export PATH=' + shlex.quote(":".join(paths)) + ':"$PATH"']
