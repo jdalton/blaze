@@ -120,7 +120,8 @@ def activate(root, lock, rustc, github):
         "MBX_BLAZE_ROOT": str(root),
     }
     if lock.get("std_from"):
-        values["RA_JIT_STD_FROM"] = lock["std_from"]
+        source = lock["std_from"]
+        values["RA_JIT_STD_FROM"] = source.get(host(), "off") if isinstance(source, dict) else source
     paths = [str(shim), str(root / "bin")]
     lines = ['export PATH=' + shlex.quote(":".join(paths)) + ':"$PATH"']
     lines += ["export " + key + "=" + shlex.quote(value) for key, value in values.items()]
