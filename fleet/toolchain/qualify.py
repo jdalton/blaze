@@ -21,6 +21,8 @@ def command(argv, cwd, env, log):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
+    parser.add_argument("--sync-unwind", action="store_true",
+                        help="Probe Perry release flags, currently refused by Blaze")
     args = parser.parse_args()
     root = args.root.resolve()
     inherited = subprocess.check_output(
@@ -34,8 +36,11 @@ def main():
     (workspace / "Cargo.toml").write_text(
         '[package]\nname="blaze-qualification"\nversion="0.1.0"\nedition="2024"\n'
     )
+    flags = '["-C", "force-unwind-tables=yes"]'
+    if args.sync_unwind:
+        flags = '["-C", "force-unwind-tables=yes", "-Z", "use-sync-unwind=yes"]'
     (workspace / ".cargo/config.toml").write_text(
-        '[build]\nrustflags=["-C", "force-unwind-tables=yes", "-Z", "use-sync-unwind=yes"]\n'
+        "[build]\nrustflags=" + flags + "\n"
     )
     source = '#![feature(float_algebraic)]\nfn value() -> f64 { 1.0f64.algebraic_add(%s) }\n'
     source += 'fn main() { println!("{}", value()); }\n'
@@ -59,7 +64,7 @@ def main():
             print("PASS: mbx cold build, Blaze nightly JIT edit, changed output, rustc check")
             return
         time.sleep(2)
-    raise RuntimeError("No edit was compiled by Blaze; Cargo success alone does not qualify")
+    raise RuntimeError("No edit was compiled by Blaze; Cargo success alone does not qualify\n" + output)
 
 
 if __name__ == "__main__":
