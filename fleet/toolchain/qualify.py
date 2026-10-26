@@ -2,6 +2,8 @@
 """Prove a prebuilt client reaches mbx and JIT-compiles a nightly Rust edit."""
 
 import argparse
+import json
+import re
 from pathlib import Path
 import subprocess
 import tempfile
@@ -33,8 +35,15 @@ def main():
     print("Qualification logs: " + str(workspace), flush=True)
     (workspace / "src").mkdir()
     (workspace / ".cargo").mkdir()
+    dependency = workspace.with_name(workspace.name + "-dependency")
+    (dependency / "src").mkdir(parents=True)
+    (dependency / "Cargo.toml").write_text(
+        '[package]\nname="qualification-dependency"\nversion="0.1.0"\nedition="2024"\n'
+    )
+    (dependency / "src/lib.rs").write_text('pub fn base() -> f64 { 1.0 }\n')
     (workspace / "Cargo.toml").write_text(
         '[package]\nname="blaze-qualification"\nversion="0.1.0"\nedition="2024"\n'
+        '[dependencies]\nqualification-dependency={path=' + json.dumps(str(dependency)) + '}\n'
     )
     flags = '["-C", "force-unwind-tables=yes"]'
     if args.sync_unwind:
@@ -42,7 +51,7 @@ def main():
     (workspace / ".cargo/config.toml").write_text(
         "[build]\nrustflags=" + flags + "\n"
     )
-    source = '#![feature(float_algebraic)]\nfn value() -> f64 { 1.0f64.algebraic_add(%s) }\n'
+    source = 'fn value() -> f64 { qualification_dependency::base().algebraic_add(%s) }\n'
     source += 'fn main() { println!("{}", value()); }\n'
     main_file = workspace / "src/main.rs"
     main_file.write_text(source % "1.0")
@@ -51,6 +60,8 @@ def main():
     cold = command([cargo, "build"], workspace, env, workspace / "cold.log")
     if "sending `cargo build` through" not in cold or "mbx[cache]" not in cold:
         raise RuntimeError("The cold build did not demonstrate both Blaze routing and mbx")
+    if "deferring to it, so this build is not cached" in cold:
+        raise RuntimeError("Blaze replaced mbx's dependency compiler wrapper")
     for attempt in range(1, 5):
         main_file.write_text(source % (str(attempt + 1) + ".0"))
         output = command([cargo, "build"], workspace, env, workspace / f"edit-{attempt}.log")
@@ -61,7 +72,13 @@ def main():
         if "[ra-jit]" in output:
             command([cargo, "check"], workspace, {**env, "MBX_BLAZE": "0"},
                     workspace / "rustc-check.log")
-            print("PASS: mbx cold build, Blaze nightly JIT edit, changed output, rustc check")
+            plain = {**env, "MBX_BLAZE": "0"}
+            command([cargo, "clean", "-p", "qualification-dependency"], workspace, plain,
+                    workspace / "clean-dependency.log")
+            restored = command([cargo, "build"], workspace, plain, workspace / "cache-restore.log")
+            if not re.search(r"mbx\[cache\]: (?:object cache: )?[1-9][0-9]* hits", restored):
+                raise RuntimeError("Dependency objects were not restored from mbx\n" + restored)
+            print("PASS: Blaze JIT edit, changed output, rustc check, mbx dependency cache hit")
             return
         time.sleep(2)
     raise RuntimeError("No edit was compiled by Blaze; Cargo success alone does not qualify\n" + output)

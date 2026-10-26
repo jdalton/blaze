@@ -64,6 +64,24 @@ class InstallerTests(unittest.TestCase):
                 "build", "--package", "name with spaces",
             ])
 
+    def test_returning_blaze_preserves_cache_slot_and_unrelated_wrappers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "bin").mkdir()
+            mbx = root / "bin/mbx"
+            mbx.write_text('#!/bin/sh\nprintf "%s\\n" "${RUSTC_WRAPPER:-unset}" '
+                           '"${RA_JIT_EVERY_CRATE:-unset}" "$RUSTC_WORKSPACE_WRAPPER"\n')
+            mbx.chmod(0o755)
+            installer.activate(root, {"toolchain": "nightly-probe"}, root / "rustc", False)
+            workspace_wrapper = str(root / "bin/ra-jit-rustc")
+            for outer, expected in [(workspace_wrapper, ["unset", "unset"]),
+                                    ("/custom/wrapper", ["/custom/wrapper", "1"])]:
+                result = subprocess.run([str(root / "shim/cargo"), "build"],
+                    env={**os.environ, "MBX_BLAZE_ROUTED": "1", "RUSTC_WRAPPER": outer,
+                         "RUSTC_WORKSPACE_WRAPPER": workspace_wrapper, "RA_JIT_EVERY_CRATE": "1"},
+                    capture_output=True, text=True, check=True)
+                self.assertEqual(result.stdout.splitlines(), expected + [workspace_wrapper])
+
 
 if __name__ == "__main__":
     unittest.main()
