@@ -27,6 +27,10 @@ if [ ! -f "$bootstrap/install.py" ] || [ ! -f "$bootstrap/lock.json" ]; then
   mv "$temporary/install.py" "$bootstrap/install.py"
   mv "$temporary/lock.json" "$bootstrap/lock.json"
 fi
+if [ "${1:-}" = "--github-env" ]; then
+  python3 "$bootstrap/install.py" --lock "$bootstrap/lock.json" --root "$root" --github-env
+  exit
+fi
 python3 "$bootstrap/install.py" --lock "$bootstrap/lock.json" --root "$root"
 if [ "$#" -gt 0 ]; then
   . "$root/env.sh"
