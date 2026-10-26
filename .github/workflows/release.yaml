@@ -29,6 +29,8 @@ jobs:
       version: ${{ steps.notes.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: 598936fc683219c70d1a97635ad1676d8f872b54
       # On a tag: the tag is the workspace version and CHANGELOG.md has its section.
       # By hand: the workspace version needs a section.
       - id: notes
@@ -48,20 +50,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { target: aarch64-apple-darwin, os: macos-15 }
+          - { target: aarch64-apple-darwin, os: macos-26 }
           # The oldest hosted Ubuntu, so that the binaries ask for an old glibc.
-          - { target: x86_64-unknown-linux-gnu, os: ubuntu-22.04 }
-          - { target: aarch64-unknown-linux-gnu, os: ubuntu-22.04-arm }
     env:
       # `cargo binstall` and install.sh find the archive and its binaries by this name
       # ([package.metadata.binstall] in crates/ra-jit/Cargo.toml).
       NAME: blaze-v${{ needs.notes.outputs.version }}-${{ matrix.target }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: 598936fc683219c70d1a97635ad1676d8f872b54
       # rust-src: blaze's proc-macro server and the standard library are compiled from it.
       - run: tc=$(cat harness/toolchain) && rustup toolchain install "$tc" --profile minimal --component rust-src && rustup default "$tc"
       # `cargo blaze --version` names the commit, as the flake's build does.
-      - run: echo "RA_JIT_GIT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - run: echo "RA_JIT_GIT_SHA=598936f" >> "$GITHUB_ENV"
       # A release's builds fetch the standard library from the release's assets (the step
       # `Standard library` below; crates/ra-jit/src/shipped.rs).
       - if: github.ref_type == 'tag'
@@ -127,6 +129,8 @@ jobs:
     timeout-minutes: 340
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: 598936fc683219c70d1a97635ad1676d8f872b54
       - run: tc=$(cat harness/toolchain) && rustup toolchain install "$tc" --profile minimal && rustup default "$tc"
       - run: python3 -I .github/scripts/publish_crates.py --publish --max-hours 5
         env:
